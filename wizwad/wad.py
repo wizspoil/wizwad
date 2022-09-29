@@ -82,7 +82,7 @@ class Wad:
 
     def _open(self):
         if self._file_pointer:
-            raise RuntimeError("This KIWad is already opened")
+            raise RuntimeError("This Wad is already open")
 
         # noinspection PyTypeChecker
         self._file_pointer = open(self.file_path, "rb")
