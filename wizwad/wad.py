@@ -191,7 +191,8 @@ class Wad:
 
     def extract_all(self, path: Union[Path, str]):
         """
-        Unarchive a wad file into a directory
+        Extract a wad file into a directory
+
         Args:
             path: source_path to the directory to unpack the wad
         """
