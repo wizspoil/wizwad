@@ -25,14 +25,15 @@ def extract(input_wad: Path, output_dir: Path):
     wad.extract_all(output_dir)
 
 
-# @main.command()
-# @click.argument("target_wad", type=click.Path(path_type=Path))
-# @click.argument("content_to_add", type=click.Path(path_type=Path, exists=True))
-# def add(target_wad: Path, content_to_add: Path):
-#     """
-#     Add a file to <target_wad>
-#     """
-#     print(f"{target_wad=} {content_to_add=}")
+@main.command()
+@click.argument("target_wad", type=click.Path(path_type=Path))
+@click.argument("content_to_add", type=click.Path(path_type=Path, exists=True))
+def add(target_wad: Path, content_to_add: Path):
+    """
+    Add a file to <target_wad>
+    """
+    wad = Wad(target_wad)
+    wad.insert_all(content_to_add)
 
 
 @main.command(name="list")
