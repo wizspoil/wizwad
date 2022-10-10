@@ -1,3 +1,4 @@
+import os
 import struct
 import zlib
 import concurrent.futures
@@ -220,13 +221,11 @@ class Wad:
                     file_path = path / file.name
                     file_path.parent.mkdir(parents=True, exist_ok=True)
 
-                    # fmt: off
                     if file.is_zip:
                         data = mm[file.offset: file.offset + file.zipped_size]
 
                     else:
                         data = mm[file.offset: file.offset + file.size]
-                    # fmt: on
 
                     # unpatched file
                     if data[:4] == b"\x00\x00\x00\x00":
@@ -346,11 +345,16 @@ class Wad:
         wad_version: int = 1,
         workers: int = 100,
     ):
-        to_write = [
-            file.relative_to(source_path)
-            for file in source_path.glob("**/*")
-            if file.is_file()
-        ]
+        to_write = []
+        source_path_string = str(source_path)
+        for root, _, files in os.walk(source_path):
+            if root == source_path_string:
+                directory_prefix = ""
+            else:
+                directory_prefix = root[len(str(source_path)) + 1:] + "/"
+
+            for file in files:
+                to_write.append(Path(directory_prefix + file))
 
         # file names must be sorted
         to_write = sorted(to_write, key=lambda p: p.as_posix())
@@ -388,6 +392,7 @@ class Wad:
 
                 for future in futures:
                     end, buffer, infos = future.result()
+
                     for info in infos:
                         fp.write(
                             struct.pack(
