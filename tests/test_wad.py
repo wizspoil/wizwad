@@ -36,7 +36,7 @@ def test_noshare_remake_wad_krok():
     if (noshare := get_noshare_dir()) is False:
         pytest.skip("No noshare data")
 
-    with tempfile.TemporaryDirectory() as temp_dir:
+    with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
         temp_dir = Path(temp_dir)
 
         extract = temp_dir / "extract"
@@ -61,7 +61,7 @@ def test_noshare_remake_wad_root():
     if (noshare := get_noshare_dir()) is False:
         pytest.skip("No noshare data")
 
-    with tempfile.TemporaryDirectory() as temp_dir:
+    with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
         temp_dir = Path(temp_dir)
 
         extract = temp_dir / "extract"
@@ -90,7 +90,7 @@ def test_noshare_remake_wad_root():
 def test_test_data_make_wad():
     test_data = get_test_data_dir()
 
-    with tempfile.TemporaryDirectory() as temp_dir:
+    with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
         temp_dir = Path(temp_dir)
 
         extract = temp_dir / "extract"
