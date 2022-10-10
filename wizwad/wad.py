@@ -372,48 +372,45 @@ class Wad:
             for chunk in more_itertools.divide(workers, to_write):
                 futures.append(executor.submit(_calculate_chunk, chunk, 0, source_path))
 
-            chunk_datas = []
-            for future in futures:
-                chunk_datas.append(future.result())
+            with open(output_path, "wb+") as fp:
+                data_block = BytesIO()
 
-        with open(output_path, "wb+") as fp:
-            data_block = BytesIO()
+                chunk_offset = journal_size
 
-            chunk_offset = journal_size
+                # magic bytes
+                fp.write(b"KIWAD")
 
-            # magic bytes
-            fp.write(b"KIWAD")
+                fp.write(struct.pack("<ll", wad_version, file_num))
 
-            fp.write(struct.pack("<ll", wad_version, file_num))
+                if wad_version >= 2:
+                    # version 2 thing
+                    fp.write(b"\x01")
 
-            if wad_version >= 2:
-                # version 2 thing
-                fp.write(b"\x01")
-
-            for end, buffer, infos in chunk_datas:
-                for info in infos:
-                    fp.write(
-                        struct.pack(
-                            "<lll?Ll",
-                            info.offset + chunk_offset,  # 0 for first chunk
-                            info.size,
-                            info.zipped_size,
-                            info.is_zip,
-                            info.crc,
-                            len(info.name) + 1,
+                for future in futures:
+                    end, buffer, infos = future.result()
+                    for info in infos:
+                        fp.write(
+                            struct.pack(
+                                "<lll?Ll",
+                                info.offset + chunk_offset,  # 0 for first chunk
+                                info.size,
+                                info.zipped_size,
+                                info.is_zip,
+                                info.crc,
+                                len(info.name) + 1,
+                            )
                         )
-                    )
 
-                    # only / paths are allowed
-                    fp.write(info.name.encode() + b"\x00")
+                        # only / paths are allowed
+                        fp.write(info.name.encode() + b"\x00")
 
-                chunk_offset += end
+                    chunk_offset += end
 
-                buffer.seek(0)
-                data_block.write(buffer.getvalue())
+                    buffer.seek(0)
+                    data_block.write(buffer.getvalue())
 
-            data_block.seek(0)
-            fp.write(data_block.getvalue())
+                data_block.seek(0)
+                fp.write(data_block.getvalue())
 
 
 # has to be defined here
