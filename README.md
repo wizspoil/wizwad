@@ -1,6 +1,11 @@
 # wizwad
 A fast extractor and packer for wizard101/pirate101 wad files
 
+## install
+```shell
+$ pip install wizwad
+```
+
 ## cli usage
 ```shell
 # extract a wad
@@ -20,3 +25,6 @@ wad = wizwad.Wad("path/to/Wad.wad")
 some_file = wad.read("name/of/file")
 print(some_file)
 ```
+
+## support
+discord: https://discord.gg/yuCRZ7kPjM
