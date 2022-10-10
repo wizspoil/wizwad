@@ -1,10 +1,13 @@
 import struct
 import zlib
+import concurrent.futures
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional, Union, List
 from mmap import mmap, ACCESS_READ
 from io import BytesIO
+
+import more_itertools
 
 
 _NO_COMPRESS = frozenset(
@@ -235,6 +238,7 @@ class Wad:
 
                     file_path.write_bytes(data)
 
+    # TODO: replace with Wad.from_full_insert classmethod
     def insert_all(
         self,
         source_path: Union[Path, str],
@@ -254,7 +258,7 @@ class Wad:
         if not overwrite and output_path.exists():
             raise FileExistsError(f"{output_path} already exists.")
 
-        self._insert_all(source_path, output_path, wad_version)
+        self._insert_all_fast(source_path, output_path, wad_version)
 
     @staticmethod
     def _insert_all(
@@ -302,7 +306,7 @@ class Wad:
                 name = file.as_posix()
 
                 if is_zip:
-                    # NOTE: this is where 99% of processing time is spent
+                    # this is where 90% of processing time is spent
                     compressed_data = zlib.compress(data, level=9)
                     zipped_size = len(compressed_data)
 
@@ -333,4 +337,122 @@ class Wad:
                 data_block.write(data)
 
             data_block.seek(0)
-            fp.write(data_block.getbuffer().obj)
+            fp.write(data_block.getvalue())
+
+    @staticmethod
+    def _insert_all_fast(
+        source_path: Path,
+        output_path: Path,
+        wad_version: int = 1,
+        workers: int = 100,
+    ):
+        to_write = [
+            file.relative_to(source_path)
+            for file in source_path.glob("**/*")
+            if file.is_file()
+        ]
+
+        # file names must be sorted
+        to_write = sorted(to_write, key=lambda p: p.as_posix())
+
+        file_num = len(to_write)
+
+        all_names_len = sum(len(str(file)) for file in to_write)
+
+        # KIWAD + version + file_num + version 2 0x01 + journal header * file number
+        # + file num for the null terminator
+        journal_size = 14 + (21 * file_num) + all_names_len + file_num
+
+        if wad_version == 1:
+            journal_size -= 1
+
+        with concurrent.futures.ProcessPoolExecutor(max_workers=workers) as executor:
+            futures = []
+
+            for chunk in more_itertools.divide(workers, to_write):
+                futures.append(executor.submit(_calculate_chunk, chunk, 0, source_path))
+
+            chunk_datas = []
+            for future in futures:
+                chunk_datas.append(future.result())
+
+        with open(output_path, "wb+") as fp:
+            data_block = BytesIO()
+
+            chunk_offset = journal_size
+
+            # magic bytes
+            fp.write(b"KIWAD")
+
+            fp.write(struct.pack("<ll", wad_version, file_num))
+
+            if wad_version >= 2:
+                # version 2 thing
+                fp.write(b"\x01")
+
+            for end, buffer, infos in chunk_datas:
+                for info in infos:
+                    fp.write(
+                        struct.pack(
+                            "<lll?Ll",
+                            info.offset + chunk_offset,  # 0 for first chunk
+                            info.size,
+                            info.zipped_size,
+                            info.is_zip,
+                            info.crc,
+                            len(info.name) + 1,
+                        )
+                    )
+
+                    # only / paths are allowed
+                    fp.write(info.name.encode() + b"\x00")
+
+                chunk_offset += end
+
+                buffer.seek(0)
+                data_block.write(buffer.getvalue())
+
+            data_block.seek(0)
+            fp.write(data_block.getvalue())
+
+
+# has to be defined here
+def _calculate_chunk(
+        files: list[Path],
+        start: int,
+        source: Path,
+) -> tuple[int, BytesIO, list[WadFileInfo]]:
+    """
+    returns end offset, data block, and journal entries
+    """
+    current_offset = start
+    data_buffer = BytesIO()
+    journal_entries = []
+
+    for file in files:
+        is_zip = file.suffix not in _NO_COMPRESS
+        data = (source / file).read_bytes()
+        size = len(data)
+        name = file.as_posix()
+
+        if is_zip:
+            # this is where 90% of processing time is spent
+            compressed_data = zlib.compress(data, level=9)
+            zipped_size = len(compressed_data)
+
+            data = compressed_data
+        else:
+            zipped_size = -1
+
+        # crc is of compressed data for some reason
+        crc = zlib.crc32(data, 0xFFFF_FFFF) ^ 0xFFFF_FFFF
+
+        journal_entries.append(
+            WadFileInfo(name, current_offset, size, zipped_size, is_zip, crc)
+        )
+
+        current_offset += len(data)
+
+        data_buffer.write(data)
+
+    return current_offset, data_buffer, journal_entries
