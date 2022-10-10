@@ -269,7 +269,7 @@ class Wad:
         ]
 
         # file names must be sorted
-        to_write = sorted(to_write)
+        to_write = sorted(to_write, key=lambda p: p.as_posix())
 
         file_num = len(to_write)
 
@@ -283,7 +283,7 @@ class Wad:
             journal_size -= 1
 
         current_offset = journal_size
-        data_blocks = []
+        data_block = BytesIO()
 
         with open(output_path, "wb+") as fp:
             # magic bytes
@@ -337,7 +337,7 @@ class Wad:
 
                 current_offset += len(data)
 
-                data_blocks.append(data)
+                data_block.write(data)
 
-            for data_block in data_blocks:
-                fp.write(data_block)
+            data_block.seek(0)
+            fp.write(data_block.getbuffer().obj)
