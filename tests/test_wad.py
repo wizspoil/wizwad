@@ -18,6 +18,11 @@ def get_noshare_dir() -> Path | bool:
     return noshare
 
 
+def get_test_data_dir() -> Path:
+    root = Path(__file__)
+    return root.parent / "test_data"
+
+
 def test_noshare_remake_wad_krok():
     if (noshare := get_noshare_dir()) is False:
         pytest.skip("No noshare data")
@@ -31,8 +36,7 @@ def test_noshare_remake_wad_krok():
         wad = wizwad.Wad(noshare / "Krokotopia-Interiors-KT_HallofDoors.wad")
         wad.extract_all(extract)
 
-        new_wad = wizwad.Wad(temp_dir / "NewWad.wad")
-        new_wad.insert_all(extract)
+        new_wad = wizwad.Wad.from_full_add(extract, temp_dir / "NewWad.wad", workers=100)
 
         for old_entry, new_entry in zip(wad.info_list(), new_wad.info_list()):
             assert old_entry == new_entry
@@ -57,8 +61,7 @@ def test_noshare_remake_wad_root():
         wad = wizwad.Wad(noshare / "Root.wad")
         wad.extract_all(extract)
 
-        new_wad = wizwad.Wad(temp_dir / "NewWad.wad")
-        new_wad.insert_all(extract, wad_version=2)
+        new_wad = wizwad.Wad.from_full_add(extract, temp_dir / "NewWad.wad", workers=100, wad_version=2)
 
         for old_entry, new_entry in zip(wad.info_list(), new_wad.info_list()):
             assert old_entry == new_entry
@@ -68,3 +71,28 @@ def test_noshare_remake_wad_root():
             new_data = new.read()
 
             assert zlib.crc32(old_data) == zlib.crc32(new_data)
+
+
+def test_test_data_make_wad():
+    test_data = get_test_data_dir()
+
+    with tempfile.TemporaryDirectory() as temp_dir:
+        temp_dir = Path(temp_dir)
+
+        extract = temp_dir / "extract"
+        extract.mkdir()
+
+        wad = wizwad.Wad.from_full_add(test_data, temp_dir / "Wad.wad", workers=100, wad_version=2)
+        wad.extract_all(extract)
+
+        new_wad = wizwad.Wad.from_full_add(extract, temp_dir / "NewWad.wad", workers=100, wad_version=2)
+
+        for old_entry, new_entry in zip(wad.info_list(), new_wad.info_list()):
+            assert old_entry == new_entry
+
+        with open(wad.file_path, "rb") as old, open(new_wad.file_path, "rb") as new:
+            old_data = old.read()
+            new_data = new.read()
+
+            assert zlib.crc32(old_data) == zlib.crc32(new_data)
+

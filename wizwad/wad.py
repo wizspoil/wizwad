@@ -126,7 +126,6 @@ class Wad:
             file_offset += 1
 
         for _ in range(file_num):
-            # print(f"journal refresh before data {hex(file_offset)=}")
             # no reason to use struct.calcsize
             offset, size, zipped_size, is_zip, crc, name_length = struct.unpack(
                 "<lll?Ll", self._mmap[file_offset: file_offset + 21]
@@ -137,11 +136,6 @@ class Wad:
 
             name = self._mmap[file_offset: file_offset + name_length].decode()
             name = name.rstrip("\x00")
-
-            # print(
-            #     f"journal refresh after data "
-            #     f"{offset=} {size=} {zipped_size=} {is_zip=} {crc=} {name_length=} {name=}"
-            # )
 
             file_offset += name_length
 
@@ -213,7 +207,6 @@ class Wad:
 
         self._extract_all(path)
 
-    # sync thread
     def _extract_all(self, path):
         with open(self.file_path, "rb") as fp:
             with mmap(fp.fileno(), 0, access=ACCESS_READ) as mm:
@@ -237,16 +230,18 @@ class Wad:
 
                     file_path.write_bytes(data)
 
-    # TODO: replace with Wad.from_full_insert classmethod
-    def insert_all(
-        self,
-        source_path: Union[Path, str],
-        *,
-        overwrite: bool = False,
-        wad_version: int = 1,
+    @classmethod
+    def from_full_add(
+            cls,
+            source_path: Path | str,
+            new_wad_name: Path | str,
+            *,
+            overwrite: bool = False,
+            wad_version: int = 1,
+            workers: int = 10,
     ):
-        source_path = Path(source_path)
-        output_path = Path(self.file_path)
+        if isinstance(source_path, str):
+            source_path = Path(source_path)
 
         if not source_path.is_dir():
             if not source_path.exists():
@@ -254,89 +249,14 @@ class Wad:
 
             raise ValueError(f"{source_path} is not a directory.")
 
-        if not overwrite and output_path.exists():
-            raise FileExistsError(f"{output_path} already exists.")
+        if isinstance(new_wad_name, str):
+            new_wad_name = Path(new_wad_name)
 
-        self._insert_all_fast(source_path, output_path, wad_version)
+        if not overwrite and new_wad_name.exists():
+            raise FileExistsError(f"{new_wad_name} already exists.")
 
-    @staticmethod
-    def _insert_all(
-        source_path: Path,
-        output_path: Path,
-        wad_version: int = 1,
-    ):
-        to_write = [
-            file.relative_to(source_path)
-            for file in source_path.glob("**/*")
-            if file.is_file()
-        ]
-
-        # file names must be sorted
-        to_write = sorted(to_write, key=lambda p: p.as_posix())
-
-        file_num = len(to_write)
-
-        all_names_len = sum(len(str(file)) for file in to_write)
-
-        # KIWAD + version + file_num + version 2 0x01 + journal header * file number
-        # + file num for the null terminator
-        journal_size = 14 + (21 * file_num) + all_names_len + file_num
-
-        if wad_version == 1:
-            journal_size -= 1
-
-        current_offset = journal_size
-        data_block = BytesIO()
-
-        with open(output_path, "wb+") as fp:
-            # magic bytes
-            fp.write(b"KIWAD")
-
-            fp.write(struct.pack("<ll", wad_version, file_num))
-
-            if wad_version >= 2:
-                # version 2 thing
-                fp.write(b"\x01")
-
-            for file in to_write:
-                is_zip = file.suffix not in _NO_COMPRESS
-                data = (source_path / file).read_bytes()
-                size = len(data)
-                name = file.as_posix()
-
-                if is_zip:
-                    # this is where 90% of processing time is spent
-                    compressed_data = zlib.compress(data, level=9)
-                    zipped_size = len(compressed_data)
-
-                    data = compressed_data
-                else:
-                    zipped_size = -1
-
-                # crc is of compressed data for some reason
-                crc = zlib.crc32(data, 0xFFFF_FFFF) ^ 0xFFFF_FFFF
-
-                fp.write(
-                    struct.pack(
-                        "<lll?Ll",
-                        current_offset,
-                        size,
-                        zipped_size,
-                        is_zip,
-                        crc,
-                        len(name) + 1,
-                    )
-                )
-
-                # only / paths are allowed
-                fp.write(name.encode() + b"\x00")
-
-                current_offset += len(data)
-
-                data_block.write(data)
-
-            data_block.seek(0)
-            fp.write(data_block.getvalue())
+        cls._insert_all_fast(source_path, new_wad_name, wad_version, workers)
+        return cls(new_wad_name)
 
     @staticmethod
     def _insert_all_fast(

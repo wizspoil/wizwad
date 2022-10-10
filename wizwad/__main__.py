@@ -28,12 +28,24 @@ def extract(input_wad: Path, output_dir: Path):
 @main.command()
 @click.argument("target_wad", type=click.Path(path_type=Path))
 @click.argument("content_to_add", type=click.Path(path_type=Path, exists=True))
-def add(target_wad: Path, content_to_add: Path):
+@click.option("--overwrite", is_flag=True, default=False, help="overwrite a wad if there already is one")
+@click.option("--wad-version", type=int, default=1, help="the wad version to use")
+@click.option("--workers", type=int, default=10, help="the number of workers to use; 100 is recommend if you can")
+def pack(target_wad: Path, content_to_add: Path, overwrite: bool, wad_version: int, workers: int):
     """
-    Add a file to <target_wad>
+    Pack a directory into <target_wad>
     """
-    wad = Wad(target_wad)
-    wad.insert_all(content_to_add)
+    if wad_version == 1 and target_wad.name == "Root.wad":
+        click.echo("You may wish to use --wad-version 2 for Root.wad")
+
+    if workers < 100:
+        click.echo("Using less than 100 workers may make packing slower")
+
+    if workers <= 0:
+        click.echo("workers must be greater than 0")
+        exit(1)
+
+    Wad.from_full_add(content_to_add, target_wad, overwrite=overwrite)
 
 
 @main.command(name="list")
