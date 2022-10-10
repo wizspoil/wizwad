@@ -9,7 +9,9 @@ import wizwad
 
 # noshare dir holds proprietary game data and must be created yourself
 def get_noshare_dir() -> Path | bool:
-    noshare = Path("./noshare_ki_data")
+    root = Path(__file__)
+    noshare = root.parent / "noshare_ki_data"
+
     if not noshare.exists():
         return False
 
