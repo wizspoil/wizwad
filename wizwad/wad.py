@@ -122,9 +122,10 @@ class Wad:
             file_offset += 1
 
         for _ in range(file_num):
+            # print(f"journal refresh before data {hex(file_offset)=}")
             # no reason to use struct.calcsize
             offset, size, zipped_size, is_zip, crc, name_length = struct.unpack(
-                "<lll?ll", self._mmap[file_offset: file_offset + 21]
+                "<lll?Ll", self._mmap[file_offset: file_offset + 21]
             )
 
             # 21 is the size of all the data we just read
@@ -132,6 +133,11 @@ class Wad:
 
             name = self._mmap[file_offset: file_offset + name_length].decode()
             name = name.rstrip("\x00")
+
+            # print(
+            #     f"journal refresh after data "
+            #     f"{offset=} {size=} {zipped_size=} {is_zip=} {crc=} {name_length=} {name=}"
+            # )
 
             file_offset += name_length
 
@@ -234,6 +240,7 @@ class Wad:
         source_path: Union[Path, str],
         *,
         overwrite: bool = False,
+        wad_version: int = 1,
     ):
         source_path = Path(source_path)
         output_path = Path(self.file_path)
@@ -247,18 +254,23 @@ class Wad:
         if not overwrite and output_path.exists():
             raise FileExistsError(f"{output_path} already exists.")
 
-        self._insert_all(source_path, output_path)
+        self._insert_all(source_path, output_path, wad_version)
 
     @staticmethod
     def _insert_all(
         source_path: Path,
         output_path: Path,
+        wad_version: int = 1,
     ):
         to_write = [
             file.relative_to(source_path)
             for file in source_path.glob("**/*")
             if file.is_file()
         ]
+
+        # file names must be sorted
+        to_write = sorted(to_write)
+
         file_num = len(to_write)
 
         all_names_len = sum(len(str(file)) for file in to_write)
@@ -267,6 +279,9 @@ class Wad:
         # + file num for the null terminator
         journal_size = 14 + (21 * file_num) + all_names_len + file_num
 
+        if wad_version == 1:
+            journal_size -= 1
+
         current_offset = journal_size
         data_blocks = []
 
@@ -274,32 +289,36 @@ class Wad:
             # magic bytes
             fp.write(b"KIWAD")
 
-            fp.write(struct.pack("<ll", 2, file_num))
+            fp.write(struct.pack("<ll", wad_version, file_num))
 
-            # version 2 thing
-            fp.write(b"\x01")
+            if wad_version >= 2:
+                # version 2 thing
+                fp.write(b"\x01")
 
             for file in to_write:
                 is_zip = file.suffix not in _NO_COMPRESS
                 data = (source_path / file).read_bytes()
-                crc = zlib.crc32(data)
                 size = len(data)
                 name = str(file)
 
                 if is_zip:
-                    compressed_data = zlib.compress(data)
+                    compressed_data = zlib.compress(data, level=9)
 
                     # they still write the zipped size for optimized files
                     zipped_size = len(compressed_data)
 
                     # they optimize in these cases
-                    if zipped_size >= len(data):
-                        is_zip = False
-
-                    else:
-                        data = compressed_data
+                    # if zipped_size >= len(data):
+                    #     print(f"optimizing for {name} {zipped_size=} {len(data)=}")
+                    #     is_zip = False
+                    #
+                    # else:
+                    data = compressed_data
                 else:
                     zipped_size = -1
+
+                # crc is of compressed data for some reason
+                crc = zlib.crc32(data, 0xFFFF_FFFF) ^ 0xFFFF_FFFF
 
                 fp.write(
                     struct.pack(
