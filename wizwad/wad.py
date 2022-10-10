@@ -299,20 +299,13 @@ class Wad:
                 is_zip = file.suffix not in _NO_COMPRESS
                 data = (source_path / file).read_bytes()
                 size = len(data)
-                name = str(file)
+                name = file.as_posix()
 
                 if is_zip:
+                    # NOTE: this is where 99% of processing time is spent
                     compressed_data = zlib.compress(data, level=9)
-
-                    # they still write the zipped size for optimized files
                     zipped_size = len(compressed_data)
 
-                    # they optimize in these cases
-                    # if zipped_size >= len(data):
-                    #     print(f"optimizing for {name} {zipped_size=} {len(data)=}")
-                    #     is_zip = False
-                    #
-                    # else:
                     data = compressed_data
                 else:
                     zipped_size = -1
@@ -333,7 +326,7 @@ class Wad:
                 )
 
                 # only / paths are allowed
-                fp.write(name.replace("\\", "/").encode() + b"\x00")
+                fp.write(name.encode() + b"\x00")
 
                 current_offset += len(data)
 
