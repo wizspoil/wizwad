@@ -1,8 +1,16 @@
+import sys
 from pathlib import Path
 
 import click
 
 from .wad import Wad
+
+
+def _get_recommended_workers() -> int:
+    if sys.platform == "win32":
+        return 60
+
+    return 100
 
 
 @click.group()
@@ -38,8 +46,9 @@ def pack(target_wad: Path, content_to_add: Path, overwrite: bool, wad_version: i
     if wad_version == 1 and target_wad.name == "Root.wad":
         click.echo("You may wish to use --wad-version 2 for Root.wad")
 
-    if workers < 100:
-        click.echo("Using less than 100 workers may make packing slower")
+    recommended_workers = _get_recommended_workers()
+    if workers < recommended_workers:
+        click.echo(f"Using less than {recommended_workers} workers may make packing slower")
 
     if workers <= 0:
         click.echo("workers must be greater than 0")

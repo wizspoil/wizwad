@@ -1,10 +1,19 @@
 import tempfile
 import zlib
+import sys
 from pathlib import Path
 
 import pytest
 
 import wizwad
+
+
+def get_worker_count() -> int:
+    # windows can only do 61
+    if sys.platform == "win32":
+        return 60
+
+    return 100
 
 
 # noshare dir holds proprietary game data and must be created yourself
@@ -36,7 +45,7 @@ def test_noshare_remake_wad_krok():
         wad = wizwad.Wad(noshare / "Krokotopia-Interiors-KT_HallofDoors.wad")
         wad.extract_all(extract)
 
-        new_wad = wizwad.Wad.from_full_add(extract, temp_dir / "NewWad.wad", workers=100)
+        new_wad = wizwad.Wad.from_full_add(extract, temp_dir / "NewWad.wad", workers=get_worker_count())
 
         for old_entry, new_entry in zip(wad.info_list(), new_wad.info_list()):
             assert old_entry == new_entry
@@ -61,7 +70,12 @@ def test_noshare_remake_wad_root():
         wad = wizwad.Wad(noshare / "Root.wad")
         wad.extract_all(extract)
 
-        new_wad = wizwad.Wad.from_full_add(extract, temp_dir / "NewWad.wad", workers=100, wad_version=2)
+        new_wad = wizwad.Wad.from_full_add(
+            extract,
+            temp_dir / "NewWad.wad",
+            workers=get_worker_count(),
+            wad_version=2,
+        )
 
         for old_entry, new_entry in zip(wad.info_list(), new_wad.info_list()):
             assert old_entry == new_entry
@@ -82,10 +96,20 @@ def test_test_data_make_wad():
         extract = temp_dir / "extract"
         extract.mkdir()
 
-        wad = wizwad.Wad.from_full_add(test_data, temp_dir / "Wad.wad", workers=100, wad_version=2)
+        wad = wizwad.Wad.from_full_add(
+            test_data,
+            temp_dir / "Wad.wad",
+            workers=get_worker_count(),
+            wad_version=2,
+        )
         wad.extract_all(extract)
 
-        new_wad = wizwad.Wad.from_full_add(extract, temp_dir / "NewWad.wad", workers=100, wad_version=2)
+        new_wad = wizwad.Wad.from_full_add(
+            extract,
+            temp_dir / "NewWad.wad",
+            workers=get_worker_count(),
+            wad_version=2,
+        )
 
         for old_entry, new_entry in zip(wad.info_list(), new_wad.info_list()):
             assert old_entry == new_entry
@@ -95,4 +119,3 @@ def test_test_data_make_wad():
             new_data = new.read()
 
             assert zlib.crc32(old_data) == zlib.crc32(new_data)
-
