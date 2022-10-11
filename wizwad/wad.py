@@ -239,6 +239,7 @@ class Wad:
             overwrite: bool = False,
             wad_version: int = 1,
             workers: int = 10,
+            compression_level: int = 9,
     ):
         if isinstance(source_path, str):
             source_path = Path(source_path)
@@ -255,7 +256,7 @@ class Wad:
         if not overwrite and new_wad_name.exists():
             raise FileExistsError(f"{new_wad_name} already exists.")
 
-        cls._insert_all_fast(source_path, new_wad_name, wad_version, workers)
+        cls._insert_all_fast(source_path, new_wad_name, wad_version, workers, compression_level)
         return cls(new_wad_name)
 
     @staticmethod
@@ -264,6 +265,7 @@ class Wad:
         output_path: Path,
         wad_version: int = 1,
         workers: int = 100,
+        compression_level: int = 9,
     ):
         to_write = []
         source_path_string = str(source_path)
@@ -294,7 +296,7 @@ class Wad:
             futures = []
 
             for chunk in more_itertools.divide(workers, to_write):
-                futures.append(executor.submit(_calculate_chunk, chunk, 0, source_path))
+                futures.append(executor.submit(_calculate_chunk, chunk, 0, source_path, compression_level))
 
             with open(output_path, "wb+") as fp:
                 data_block = BytesIO()
@@ -343,6 +345,7 @@ def _calculate_chunk(
         files: list[Path],
         start: int,
         source: Path,
+        compression_level: int = 9,
 ) -> tuple[int, BytesIO, list[WadFileInfo]]:
     """
     returns end offset, data block, and journal entries
@@ -359,7 +362,7 @@ def _calculate_chunk(
 
         if is_zip:
             # this is where 90% of processing time is spent
-            compressed_data = zlib.compress(data, level=9)
+            compressed_data = zlib.compress(data, level=compression_level)
             zipped_size = len(compressed_data)
 
             data = compressed_data

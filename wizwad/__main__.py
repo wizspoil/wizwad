@@ -38,8 +38,16 @@ def extract(input_wad: Path, output_dir: Path):
 @click.argument("content_to_add", type=click.Path(path_type=Path, exists=True))
 @click.option("--overwrite", is_flag=True, default=False, help="overwrite a wad if there already is one")
 @click.option("--wad-version", type=int, default=1, help="the wad version to use")
-@click.option("--workers", type=int, default=10, help="the number of workers to use; 100 is recommend if you can")
-def pack(target_wad: Path, content_to_add: Path, overwrite: bool, wad_version: int, workers: int):
+@click.option("--workers", type=int, default=10, help="the number of workers to use; 100 is recommend on linux")
+@click.option("--compression-level", type=int, default=9, help="zlib compression level of the data blob")
+def pack(
+        target_wad: Path,
+        content_to_add: Path,
+        overwrite: bool,
+        wad_version: int,
+        workers: int,
+        compression_level: int,
+):
     """
     Pack a directory into <target_wad>
     """
@@ -54,7 +62,11 @@ def pack(target_wad: Path, content_to_add: Path, overwrite: bool, wad_version: i
         click.echo("workers must be greater than 0")
         exit(1)
 
-    Wad.from_full_add(content_to_add, target_wad, overwrite=overwrite)
+    if not 1 <= compression_level <= 9:
+        click.echo("compression level must be 1-9")
+        exit(1)
+
+    Wad.from_full_add(content_to_add, target_wad, overwrite=overwrite, compression_level=compression_level)
 
 
 @main.command(name="list")
