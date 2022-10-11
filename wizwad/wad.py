@@ -210,25 +210,64 @@ class Wad:
     def _extract_all(self, path):
         with open(self.file_path, "rb") as fp:
             with mmap(fp.fileno(), 0, access=ACCESS_READ) as mm:
-                for file in self._file_map.values():
-                    file_path = path / file.name
-                    file_path.parent.mkdir(parents=True, exist_ok=True)
+                with concurrent.futures.ThreadPoolExecutor() as executor:
+                    # import time
 
-                    if file.is_zip:
-                        data = mm[file.offset: file.offset + file.zipped_size]
+                    # dir_make_cum = 0
+                    # data_write_cum = 0
+                    # decompress_cum = 0
+                    #
+                    # data_get_cum = 0
 
-                    else:
-                        data = mm[file.offset: file.offset + file.size]
+                    for file in self._file_map.values():
+                        # print(f"{dir_make_cum=} {data_write_cum=} {decompress_cum=}")
+                        # print(f"{data_get_cum=}")
 
-                    # unpatched file
-                    if data[:4] == b"\x00\x00\x00\x00":
-                        file_path.touch()
-                        continue
+                        file_path = path / file.name
+                        # start_dir_make = time.perf_counter()
+                        # file_path.parent.mkdir(parents=True, exist_ok=True)
+                        executor.submit(file_path.parent.mkdir, parents=True, exists_of=True)
+                        # end_dir_make = time.perf_counter()
+                        # dir_make_cum += end_dir_make - start_dir_make
+                        #
+                        # start_data_get = time.perf_counter()
+                        if file.is_zip:
+                            data = mm[file.offset: file.offset + file.zipped_size]
 
-                    if file.is_zip:
-                        data = zlib.decompress(data)
+                        else:
+                            data = mm[file.offset: file.offset + file.size]
+                        # end_data_get = time.perf_counter()
+                        # data_get_cum += end_data_get - start_data_get
 
-                    file_path.write_bytes(data)
+                        # NOTE: this is actually faster than .startswith
+                        # unpatched file
+                        if data[:4] == b"\x00\x00\x00\x00":
+                            file_path.touch()
+                            continue
+
+                        if file.is_zip:
+                            # start_decompress = time.perf_counter()
+                            data = zlib.decompress(data)
+                            # end_decompress = time.perf_counter()
+                            # decompress_cum += end_decompress - start_decompress
+
+                        # start_data_write = time.perf_counter()
+                        # file_path.write_bytes(data)
+
+                        # start_open = time.perf_counter()
+                        # with open(file_path, "wb") as data_fp:
+                        #     end_open = time.perf_counter()
+                        #     start_inner_write = time.perf_counter()
+                        #     data_fp.write(data)
+                        #     end_inner_write = time.perf_counter()
+
+                        executor.submit(_write_file, file_path, data)
+
+                        # end_data_write = time.perf_counter()
+                        # data_write_cum += end_data_write - start_data_write
+
+                        # open_cum += end_open - start_open
+                        # inner_write_cum += end_inner_write - start_inner_write
 
     @classmethod
     def from_full_add(
@@ -267,17 +306,20 @@ class Wad:
         workers: int = 100,
         compression_level: int = 9,
     ):
+        # NOTE: this is faster than Path.glob
         to_write = []
         source_path_string = str(source_path)
+        source_path_skip = len(source_path_string) + 1
         for root, _, files in os.walk(source_path):
             if root == source_path_string:
                 directory_prefix = ""
             else:
-                directory_prefix = root[len(str(source_path)) + 1:] + "/"
+                directory_prefix = root[source_path_skip:] + "/"
 
             for file in files:
                 to_write.append(Path(directory_prefix + file))
 
+        # NOTE: this is faster than to_write.sort
         # file names must be sorted
         to_write = sorted(to_write, key=lambda p: p.as_posix())
 
@@ -338,6 +380,11 @@ class Wad:
 
                 data_block.seek(0)
                 fp.write(data_block.getvalue())
+
+
+def _write_file(file_path, data):
+    with open(file_path, "wb") as data_fp:
+        data_fp.write(data)
 
 
 # has to be defined here
