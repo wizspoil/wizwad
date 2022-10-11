@@ -1,5 +1,6 @@
 import os
 import struct
+import sys
 import zlib
 import concurrent.futures
 from dataclasses import dataclass
@@ -211,47 +212,51 @@ class Wad:
         with open(self.file_path, "rb") as fp:
             with mmap(fp.fileno(), 0, access=ACCESS_READ) as mm:
                 with concurrent.futures.ThreadPoolExecutor() as executor:
-                    # import time
+                    import time
 
-                    # dir_make_cum = 0
-                    # data_write_cum = 0
-                    # decompress_cum = 0
-                    #
-                    # data_get_cum = 0
+                    dir_make_cum = 0
+                    data_write_cum = 0
+                    decompress_cum = 0
+
+                    data_get_cum = 0
+                    touch_cum = 0
 
                     for file in self._file_map.values():
-                        # print(f"{dir_make_cum=} {data_write_cum=} {decompress_cum=}")
-                        # print(f"{data_get_cum=}")
-
                         file_path = path / file.name
-                        # start_dir_make = time.perf_counter()
-                        # file_path.parent.mkdir(parents=True, exist_ok=True)
-                        executor.submit(file_path.parent.mkdir, parents=True, exists_of=True)
-                        # end_dir_make = time.perf_counter()
-                        # dir_make_cum += end_dir_make - start_dir_make
-                        #
-                        # start_data_get = time.perf_counter()
+                        start_dir_make = time.perf_counter()
+                        #file_path.parent.mkdir(parents=True, exist_ok=True)
+                        # executor.submit(file_path.parent.mkdir, parents=True, exists_of=True)
+                        end_dir_make = time.perf_counter()
+                        dir_make_cum += end_dir_make - start_dir_make
+
+                        start_data_get = time.perf_counter()
                         if file.is_zip:
                             data = mm[file.offset: file.offset + file.zipped_size]
 
                         else:
                             data = mm[file.offset: file.offset + file.size]
-                        # end_data_get = time.perf_counter()
-                        # data_get_cum += end_data_get - start_data_get
+                        end_data_get = time.perf_counter()
+                        data_get_cum += end_data_get - start_data_get
 
                         # NOTE: this is actually faster than .startswith
                         # unpatched file
                         if data[:4] == b"\x00\x00\x00\x00":
+                            start_touch = time.perf_counter()
+                            file_path.parent.mkdir(parents=True, exist_ok=True)
                             file_path.touch()
+                            end_touch = time.perf_counter()
+
+                            touch_cum += end_touch - start_touch
+
                             continue
 
                         if file.is_zip:
-                            # start_decompress = time.perf_counter()
+                            start_decompress = time.perf_counter()
                             data = zlib.decompress(data)
-                            # end_decompress = time.perf_counter()
-                            # decompress_cum += end_decompress - start_decompress
+                            end_decompress = time.perf_counter()
+                            decompress_cum += end_decompress - start_decompress
 
-                        # start_data_write = time.perf_counter()
+                        start_data_write = time.perf_counter()
                         # file_path.write_bytes(data)
 
                         # start_open = time.perf_counter()
@@ -263,11 +268,14 @@ class Wad:
 
                         executor.submit(_write_file, file_path, data)
 
-                        # end_data_write = time.perf_counter()
-                        # data_write_cum += end_data_write - start_data_write
+                        end_data_write = time.perf_counter()
+                        data_write_cum += end_data_write - start_data_write
 
                         # open_cum += end_open - start_open
                         # inner_write_cum += end_inner_write - start_inner_write
+
+                    print(f"{dir_make_cum=} {data_write_cum=} {decompress_cum=}")
+                    print(f"{data_get_cum=} {touch_cum=}")
 
     @classmethod
     def from_full_add(
@@ -334,11 +342,23 @@ class Wad:
         if wad_version == 1:
             journal_size -= 1
 
-        with concurrent.futures.ProcessPoolExecutor(max_workers=workers) as executor:
+        executor_type = concurrent.futures.ProcessPoolExecutor
+
+        # windows has a hard time with multiple processes
+        if sys.platform == "win32":
+            executor_type = concurrent.futures.ThreadPoolExecutor
+
+        with executor_type(max_workers=workers) as executor:
             futures = []
 
             for chunk in more_itertools.divide(workers, to_write):
-                futures.append(executor.submit(_calculate_chunk, chunk, 0, source_path, compression_level))
+                futures.append(executor.submit(
+                    _calculate_chunk,
+                    chunk,
+                    0,
+                    source_path,
+                    compression_level,
+                ))
 
             with open(output_path, "wb+") as fp:
                 data_block = BytesIO()
@@ -383,6 +403,7 @@ class Wad:
 
 
 def _write_file(file_path, data):
+    file_path.parent.mkdir(parents=True, exist_ok=True)
     with open(file_path, "wb") as data_fp:
         data_fp.write(data)
 
