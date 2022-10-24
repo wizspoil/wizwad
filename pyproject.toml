@@ -10,7 +10,7 @@ repository = "https://github.com/StarrFox/wizwad"
 [tool.poetry.dependencies]
 python = "^3.10"
 click = "^8.1.3"
-more-itertools = "^8.14.0"
+more-itertools = ">=8.14,<10.0"
 
 [tool.poetry.scripts]
 wizwad = "wizwad.__main__:main"
