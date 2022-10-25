@@ -7,7 +7,7 @@ on:
     branches: [ "main" ]
 
 jobs:
-  build:
+  test:
     strategy:
       fail-fast: false
       matrix:
@@ -31,3 +31,5 @@ jobs:
       run: poetry install
     - name: Run tests
       run: poetry run pytest
+    - name: Run mypy
+      run: poetry run mypy
