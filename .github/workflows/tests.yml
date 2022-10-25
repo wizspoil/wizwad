@@ -2,9 +2,13 @@ name: Tests
 
 on:
   push:
-    branches: [ "main" ]
+    paths:
+      - "wizwad/**"
+      - ".github/workflows/tests.yml"
   pull_request:
-    branches: [ "main" ]
+    paths:
+      - "wizwad/**"
+      - ".github/workflows/tests.yml"
 
 jobs:
   test:
