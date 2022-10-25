@@ -4,7 +4,7 @@ import zlib
 import concurrent.futures
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional, Union, List
+from typing import Optional, Union, List, Iterator
 from mmap import mmap, ACCESS_READ
 from io import BytesIO
 
@@ -35,13 +35,13 @@ class Wad:
         self.file_path = Path(file)
         self.name = self.file_path.stem
 
-        self._file_map = {}
+        self._file_map: dict[str, WadFileInfo] = {}
         self._file_pointer = None
-        self._mmap = None
+        self._mmap: mmap | None = None
 
         self._refreshed_once = False
 
-        self._size = None
+        self._size: None | int = None
 
     def __repr__(self):
         return f"<Wad {self.name=}>"
@@ -93,8 +93,12 @@ class Wad:
         self._mmap = mmap(self._file_pointer.fileno(), 0, access=ACCESS_READ)
         self._refresh_journal()
 
-    def open(self, file_name: str) -> BytesIO:
+    def open(self, file_name: str) -> BytesIO | None:
         data = self.read(file_name)
+
+        if data is None:
+            return None
+
         return BytesIO(data)
 
     def close(self):
@@ -103,7 +107,8 @@ class Wad:
 
     # fmt: off
     def _read(self, start: int, size: int) -> bytes:
-        return self._mmap[start: start + size]
+        # Note, must be sure _open is always called before _read
+        return self._mmap[start: start + size]  # type: ignore
     # fmt: on
 
     # fmt: off
@@ -342,7 +347,7 @@ class Wad:
 
 # has to be defined here
 def _calculate_chunk(
-        files: list[Path],
+        files: Iterator[Path],
         start: int,
         source: Path,
         compression_level: int = 9,
