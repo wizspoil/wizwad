@@ -4,7 +4,7 @@ import zlib
 import concurrent.futures
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional, Union, List, Dict, Iterator
+from typing import Optional, Union, List, Iterator
 from mmap import mmap, ACCESS_READ
 from io import BytesIO
 
