@@ -107,8 +107,8 @@ class Wad:
 
     # fmt: off
     def _read(self, start: int, size: int) -> bytes:
-        # type: ignore
-        return self._mmap[start: start + size]
+        # Note, must be sure _open is always called before _read
+        return self._mmap[start: start + size]  # type: ignore
     # fmt: on
 
     # fmt: off
