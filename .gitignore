@@ -130,3 +130,9 @@ dmypy.json
 
 # propritary data
 tests/noshare_ki_data/
+
+# profiler
+profile.json
+
+# nix
+result
