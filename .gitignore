@@ -136,3 +136,6 @@ profile.json
 
 # nix
 result
+
+# vscode garbage
+.vscode

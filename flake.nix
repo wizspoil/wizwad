@@ -1,5 +1,5 @@
 {
-  description = "My Python application";
+  description = "A fast extractor and packer for wizard101/pirate101 wad files";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs";
