@@ -2,6 +2,7 @@ import os
 import struct
 import zlib
 import concurrent.futures
+import logging
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional, Union, List, Iterator
@@ -17,6 +18,8 @@ _NO_COMPRESS = frozenset(
         ".ogg",
     )
 )
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -102,6 +105,9 @@ class Wad:
         return BytesIO(data)
 
     def close(self):
+        if self._file_pointer is None:
+            raise ValueError("Wad must be opened before closing")
+
         self._file_pointer.close()
         self._file_pointer = None
 
@@ -122,7 +128,7 @@ class Wad:
         file_offset = 5
 
         version, file_num = struct.unpack(
-            "<ll", self._mmap[file_offset: file_offset + 8]
+            "<ll", self._mmap[file_offset: file_offset + 8] # type: ignore
         )
 
         file_offset += 8
@@ -133,13 +139,13 @@ class Wad:
         for _ in range(file_num):
             # no reason to use struct.calcsize
             offset, size, zipped_size, is_zip, crc, name_length = struct.unpack(
-                "<lll?Ll", self._mmap[file_offset: file_offset + 21]
+                "<lll?Ll", self._mmap[file_offset: file_offset + 21] # type: ignore
             )
 
             # 21 is the size of all the data we just read
             file_offset += 21
 
-            name = self._mmap[file_offset: file_offset + name_length].decode()
+            name = self._mmap[file_offset: file_offset + name_length].decode() # type: ignore
             name = name.rstrip("\x00")
 
             file_offset += name_length
@@ -227,6 +233,7 @@ class Wad:
 
                     # unpatched file
                     if data[:4] == b"\x00\x00\x00\x00":
+                        logger.warning(f"Touching unpatched file \"{file.name}\"")
                         file_path.touch()
                         continue
 

@@ -136,6 +136,7 @@ profile.json
 
 # nix
 result
+.direnv
 
 # vscode garbage
 .vscode

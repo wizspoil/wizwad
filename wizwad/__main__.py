@@ -1,10 +1,12 @@
 import sys
+import logging
 from pathlib import Path
 
 import click
 
 from .wad import Wad
 
+logging.getLogger("wizwad").addHandler(logging.StreamHandler())
 
 def _get_recommended_workers() -> int:
     if sys.platform == "win32":
