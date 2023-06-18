@@ -1,6 +1,6 @@
+import sys
 import tempfile
 import zlib
-import sys
 from pathlib import Path
 
 import pytest
@@ -45,7 +45,9 @@ def test_noshare_remake_wad_krok():
         wad = wizwad.Wad(noshare / "Krokotopia-Interiors-KT_HallofDoors.wad")
         wad.extract_all(extract)
 
-        new_wad = wizwad.Wad.from_full_add(extract, temp_dir / "NewWad.wad", workers=get_worker_count())
+        new_wad = wizwad.Wad.from_full_add(
+            extract, temp_dir / "NewWad.wad", workers=get_worker_count()
+        )
 
         for old_entry, new_entry in zip(wad.info_list(), new_wad.info_list()):
             assert old_entry == new_entry

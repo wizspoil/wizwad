@@ -7,11 +7,20 @@
     nix-systems.url = "github:nix-systems/default";
   };
 
-  outputs = inputs @ { self, flake-parts, nix-systems, ... }: 
+  outputs = inputs @ {
+    self,
+    flake-parts,
+    nix-systems,
+    ...
+  }:
     flake-parts.lib.mkFlake {inherit inputs;} {
       debug = true;
       systems = import nix-systems;
-      perSystem = {pkgs, self', ...}: {
+      perSystem = {
+        pkgs,
+        self',
+        ...
+      }: {
         packages.wizwad = pkgs.poetry2nix.mkPoetryApplication {
           projectDir = ./.;
         };

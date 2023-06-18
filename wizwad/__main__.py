@@ -1,5 +1,5 @@
-import sys
 import logging
+import sys
 from pathlib import Path
 
 import click
@@ -7,6 +7,7 @@ import click
 from .wad import Wad
 
 logging.getLogger("wizwad").addHandler(logging.StreamHandler())
+
 
 def _get_recommended_workers() -> int:
     if sys.platform == "win32":
@@ -24,8 +25,12 @@ def main():
 
 
 @main.command()
-@click.argument("input_wad", type=click.Path(exists=True, dir_okay=False, path_type=Path))
-@click.argument("output_dir", type=click.Path(file_okay=False, path_type=Path), default=".")
+@click.argument(
+    "input_wad", type=click.Path(exists=True, dir_okay=False, path_type=Path)
+)
+@click.argument(
+    "output_dir", type=click.Path(file_okay=False, path_type=Path), default="."
+)
 def extract(input_wad: Path, output_dir: Path):
     """
     Extract the content of a wad to <output_dir> which defaults to the current directory
@@ -38,17 +43,32 @@ def extract(input_wad: Path, output_dir: Path):
 @main.command()
 @click.argument("target_wad", type=click.Path(path_type=Path))
 @click.argument("content_to_add", type=click.Path(path_type=Path, exists=True))
-@click.option("--overwrite", is_flag=True, default=False, help="overwrite a wad if there already is one")
+@click.option(
+    "--overwrite",
+    is_flag=True,
+    default=False,
+    help="overwrite a wad if there already is one",
+)
 @click.option("--wad-version", type=int, default=1, help="the wad version to use")
-@click.option("--workers", type=int, default=10, help="the number of workers to use; 100 is recommend on linux")
-@click.option("--compression-level", type=int, default=9, help="zlib compression level of the data blob")
+@click.option(
+    "--workers",
+    type=int,
+    default=10,
+    help="the number of workers to use; 100 is recommend on linux",
+)
+@click.option(
+    "--compression-level",
+    type=int,
+    default=9,
+    help="zlib compression level of the data blob",
+)
 def pack(
-        target_wad: Path,
-        content_to_add: Path,
-        overwrite: bool,
-        wad_version: int,
-        workers: int,
-        compression_level: int,
+    target_wad: Path,
+    content_to_add: Path,
+    overwrite: bool,
+    wad_version: int,
+    workers: int,
+    compression_level: int,
 ):
     """
     Pack a directory into <target_wad>
@@ -58,7 +78,9 @@ def pack(
 
     recommended_workers = _get_recommended_workers()
     if workers < recommended_workers:
-        click.echo(f"Using less than {recommended_workers} workers may make packing slower")
+        click.echo(
+            f"Using less than {recommended_workers} workers may make packing slower"
+        )
 
     if workers <= 0:
         click.echo("workers must be greater than 0")
@@ -68,11 +90,18 @@ def pack(
         click.echo("compression level must be 1-9")
         exit(1)
 
-    Wad.from_full_add(content_to_add, target_wad, overwrite=overwrite, compression_level=compression_level)
+    Wad.from_full_add(
+        content_to_add,
+        target_wad,
+        overwrite=overwrite,
+        compression_level=compression_level,
+    )
 
 
 @main.command(name="list")
-@click.argument("wad_to_list", type=click.Path(path_type=Path, exists=True, dir_okay=False))
+@click.argument(
+    "wad_to_list", type=click.Path(path_type=Path, exists=True, dir_okay=False)
+)
 def _list(wad_to_list: Path):
     """
     List the files in <wad_to_list>

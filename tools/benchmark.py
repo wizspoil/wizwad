@@ -1,9 +1,8 @@
-import tempfile
 import cProfile
+import tempfile
 from pathlib import Path
 
 import wizwad
-
 
 ROOT = Path(__file__)
 noshare = ROOT.parent.parent / "tests" / "noshare_ki_data"
