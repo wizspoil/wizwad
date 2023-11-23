@@ -38,30 +38,32 @@ class Wad:
         self.name = self.file_path.stem
 
         self._file_map: dict[str, WadFileInfo] = {}
-        self._file_pointer = None
-        self._mmap: mmap | None = None
+        self._file_pointer = open(self.file_path, "rb")
+        self._mmap = mmap(self._file_pointer.fileno(), 0, access=ACCESS_READ)
 
+        self._closed: bool = False
+        self._size: None | int = None
         self._refreshed_once = False
 
-        self._size: None | int = None
+        self._refresh_journal()
+
+    @property
+    def closed(self) -> bool:
+        return self._file_pointer.closed
 
     def __repr__(self):
         return f"<Wad {self.name=}>"
 
     def __enter__(self):
-        self._open()
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(self, *_: object):
         self.close()
 
     def size(self) -> int:
         """
         Total size of this wad
         """
-        if not self._file_pointer:
-            self._open()
-
         if self._size:
             return self._size
 
@@ -72,28 +74,13 @@ class Wad:
         """
         List of all file names in this wad
         """
-        if not self._file_pointer:
-            self._open()
-
         return list(self._file_map.keys())
 
     def info_list(self) -> List[WadFileInfo]:
         """
         List of all KIWadFileInfo in this wad
         """
-        if not self._file_pointer:
-            self._open()
-
         return list(self._file_map.values())
-
-    def _open(self):
-        if self._file_pointer:
-            raise RuntimeError("This Wad is already open")
-
-        # noinspection PyTypeChecker
-        self._file_pointer = open(self.file_path, "rb")
-        self._mmap = mmap(self._file_pointer.fileno(), 0, access=ACCESS_READ)
-        self._refresh_journal()
 
     def open(self, file_name: str) -> BytesIO | None:
         data = self.read(file_name)
@@ -104,19 +91,12 @@ class Wad:
         return BytesIO(data)
 
     def close(self):
-        if self._file_pointer is None:
-            raise ValueError("Wad must be opened before closing")
-
         self._file_pointer.close()
-        self._file_pointer = None
+        self._mmap.close()
 
-    # fmt: off
     def _read(self, start: int, size: int) -> bytes:
-        # Note, must be sure _open is always called before _read
-        return self._mmap[start: start + size]  # type: ignore
-    # fmt: on
+        return self._mmap[start: start + size]
 
-    # fmt: off
     def _refresh_journal(self):
         if self._refreshed_once:
             return
@@ -127,7 +107,7 @@ class Wad:
         file_offset = 5
 
         version, file_num = struct.unpack(
-            "<ll", self._mmap[file_offset: file_offset + 8] # type: ignore
+            "<ll", self._mmap[file_offset: file_offset + 8]
         )
 
         file_offset += 8
@@ -138,13 +118,13 @@ class Wad:
         for _ in range(file_num):
             # no reason to use struct.calcsize
             offset, size, zipped_size, is_zip, crc, name_length = struct.unpack(
-                "<lll?Ll", self._mmap[file_offset: file_offset + 21] # type: ignore
+                "<lll?Ll", self._mmap[file_offset: file_offset + 21]
             )
 
             # 21 is the size of all the data we just read
             file_offset += 21
 
-            name = self._mmap[file_offset: file_offset + name_length].decode() # type: ignore
+            name = self._mmap[file_offset: file_offset + name_length].decode()
             name = name.rstrip("\x00")
 
             file_offset += name_length
@@ -152,7 +132,6 @@ class Wad:
             self._file_map[name] = WadFileInfo(
                 name, offset, size, zipped_size, is_zip, crc
             )
-    # fmt: on
 
     def read(self, name: str) -> Optional[bytes]:
         """
@@ -162,9 +141,6 @@ class Wad:
         Returns:
             Bytes of the file or None for "unpatched" dummy files
         """
-        if not self._file_pointer:
-            self._open()
-
         target_file = self.get_info(name)
 
         if target_file.is_zip:
@@ -193,9 +169,6 @@ class Wad:
         Args:
             name: name of the file to get info on
         """
-        if not self._file_pointer:
-            self._open()
-
         try:
             target_file = self._file_map[name]
         except KeyError:
@@ -212,12 +185,9 @@ class Wad:
         """
         path = Path(path)
 
-        if not self._file_pointer:
-            self._open()
-
         self._extract_all(path)
 
-    def _extract_all(self, path):
+    def _extract_all(self, path: Path):
         with open(self.file_path, "rb") as fp:
             with mmap(fp.fileno(), 0, access=ACCESS_READ) as mm:
                 for file in self._file_map.values():
@@ -280,7 +250,7 @@ class Wad:
         workers: int = 100,
         compression_level: int = 9,
     ):
-        to_write = []
+        to_write: list[Path] = []
         source_path_string = str(source_path)
         for root, _, files in os.walk(source_path):
             if root == source_path_string:
@@ -306,7 +276,7 @@ class Wad:
             journal_size -= 1
 
         with concurrent.futures.ProcessPoolExecutor(max_workers=workers) as executor:
-            futures = []
+            futures: list[concurrent.futures.Future[tuple[int, BytesIO, list[WadFileInfo]]]] = []
 
             for chunk in more_itertools.divide(workers, to_write):
                 futures.append(
@@ -369,7 +339,7 @@ def _calculate_chunk(
     """
     current_offset = start
     data_buffer = BytesIO()
-    journal_entries = []
+    journal_entries: list[WadFileInfo] = []
 
     for file in files:
         is_zip = file.suffix not in _NO_COMPRESS
@@ -394,7 +364,6 @@ def _calculate_chunk(
         )
 
         current_offset += len(data)
-
         data_buffer.write(data)
 
     return current_offset, data_buffer, journal_entries
