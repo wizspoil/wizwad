@@ -102,7 +102,7 @@ def pack(
 @click.argument(
     "wad_to_list", type=click.Path(path_type=Path, exists=True, dir_okay=False)
 )
-def _list(wad_to_list: Path):
+def _list(wad_to_list: Path): # type: ignore (function is registered as a command)
     """
     List the files in <wad_to_list>
     """
