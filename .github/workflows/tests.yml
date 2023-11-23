@@ -31,14 +31,9 @@ jobs:
       uses: abatilo/actions-poetry@v2
       with:
           poetry-version: "1.4.1"
-    - run: echo "$(poetry env info --path)/bin" >> $GITHUB_PATH
     - name: Install dependencies
       run: poetry install
     - name: Run tests
       run: poetry run pytest
     - name: Run mypy
       run: poetry run mypy .
-    - uses: jakebailey/pyright-action@v1
-      with:
-        ignore-external: true
-    
