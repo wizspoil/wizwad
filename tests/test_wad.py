@@ -90,7 +90,7 @@ def test_noshare_remake_wad_root():
             assert zlib.crc32(old_data) == zlib.crc32(new_data)
 
 
-def test_test_data_make_wad():
+def test_data_make_wad():
     test_data = get_test_data_dir()
 
     with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:

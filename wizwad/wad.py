@@ -41,11 +41,11 @@ class Wad:
         self._file_pointer = open(self.file_path, "rb")
         self._mmap = mmap(self._file_pointer.fileno(), 0, access=ACCESS_READ)
 
+        self._closed: bool = False
+        self._size: None | int = None
         self._refreshed_once = False
 
-        self._size: None | int = None
-
-        self._closed: bool = False
+        self._refresh_journal()
 
     @property
     def closed(self) -> bool:
@@ -95,8 +95,7 @@ class Wad:
         self._mmap.close()
 
     def _read(self, start: int, size: int) -> bytes:
-        # Note, must be sure _open is always called before _read
-        return self._mmap[start: start + size]  # type: ignore
+        return self._mmap[start: start + size]
 
     def _refresh_journal(self):
         if self._refreshed_once:
