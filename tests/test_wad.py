@@ -2,6 +2,7 @@ import sys
 import tempfile
 import zlib
 from pathlib import Path
+from typing import Literal
 
 import pytest
 
@@ -17,7 +18,7 @@ def get_worker_count() -> int:
 
 
 # noshare dir holds proprietary game data and must be created yourself
-def get_noshare_dir() -> Path | bool:
+def get_noshare_dir() -> Path | Literal[False]:
     root = Path(__file__)
     noshare = root.parent / "noshare_ki_data"
 
