@@ -41,7 +41,6 @@ class Wad:
         self._file_pointer = open(self.file_path, "rb")
         self._mmap = mmap(self._file_pointer.fileno(), 0, access=ACCESS_READ)
 
-        self._closed: bool = False
         self._size: None | int = None
         self._refreshed_once = False
 
