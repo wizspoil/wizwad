@@ -6,6 +6,11 @@ default:
 test:
   poetry run pytest --cov=wizwad
 
+# open coverage report
+coverage:
+  poetry run pytest --cov=wizwad --cov-report html
+  xdg-open htmlcov/index.html
+
 # does a version bump commit
 bump-commit type: && create-tag publish
     poetry version {{type}}
