@@ -187,14 +187,16 @@ class Wad:
         self._extract_all(path)
 
     def _extract_all(self, path: Path):
+        # we need to resolve both since `path` may have symlinks in it
+        # and the previous .resolve would have resolved these
+        path = path.resolve()
+
         with open(self.file_path, "rb") as fp:
             with mmap(fp.fileno(), 0, access=ACCESS_READ) as mm:
                 for file in self._file_map.values():
                     file_path = (path / file.name).resolve()
 
-                    # we need to resolve both since `path` may have symlinks in it
-                    # and the previous .resolve would have resolved these
-                    if not file_path.is_relative_to(path.resolve()):
+                    if not file_path.is_relative_to(path):
                         raise RuntimeError(
                             f"Escaping path detected: {file.name} -> {file_path}"
                         )
