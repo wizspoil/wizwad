@@ -33,6 +33,9 @@
         packages.wizwad = poetry2nix'.mkPoetryApplication {
           projectDir = ./.;
           inherit python;
+          overrides = [
+            poetry2nix'.defaultPoetryOverrides
+          ];
         };
 
         packages.default = self'.packages.wizwad;
