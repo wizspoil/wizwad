@@ -190,7 +190,11 @@ class Wad:
         with open(self.file_path, "rb") as fp:
             with mmap(fp.fileno(), 0, access=ACCESS_READ) as mm:
                 for file in self._file_map.values():
-                    file_path = path / file.name
+                    file_path = (path / file.name).resolve()
+
+                    if not str(file_path).startswith(str(path)):
+                        raise RuntimeError(f"Escaping path detected: {file.name}")
+
                     file_path.parent.mkdir(parents=True, exist_ok=True)
 
                     if file.is_zip:
