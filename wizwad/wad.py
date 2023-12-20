@@ -192,7 +192,7 @@ class Wad:
                 for file in self._file_map.values():
                     file_path = (path / file.name).resolve()
 
-                    if not file_path.is_relative_to(path):
+                    if not file_path.is_relative_to(path.resolve()):
                         raise RuntimeError(
                             f"Escaping path detected: {file.name} {file_path=} {path=}"
                         )
