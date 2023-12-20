@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "wizwad"
-version = "0.4.2"
+version = "0.4.3"
 description = ""
 authors = ["StarrFox <starrfox6312@gmail.com>"]
 license = "MIT"
