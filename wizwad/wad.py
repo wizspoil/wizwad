@@ -192,9 +192,11 @@ class Wad:
                 for file in self._file_map.values():
                     file_path = (path / file.name).resolve()
 
+                    # we need to resolve both since `path` may have symlinks in it
+                    # and the previous .resolve would have resolved these
                     if not file_path.is_relative_to(path.resolve()):
                         raise RuntimeError(
-                            f"Escaping path detected: {file.name} {file_path=} {path=}"
+                            f"Escaping path detected: {file.name} -> {file_path}"
                         )
 
                     file_path.parent.mkdir(parents=True, exist_ok=True)
