@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "wizwad"
 version = "0.4.1"
-description = ""
+description = "A fast extractor and packer for wizard101/pirate101 wad files"
 authors = ["StarrFox <starrfox6312@gmail.com>"]
 license = "MIT"
 readme = "README.md"
