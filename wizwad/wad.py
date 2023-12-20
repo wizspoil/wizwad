@@ -192,7 +192,7 @@ class Wad:
                 for file in self._file_map.values():
                     file_path = (path / file.name).resolve()
 
-                    if not str(file_path).startswith(str(path)):
+                    if not file_path.is_relative_to(path):
                         raise RuntimeError(f"Escaping path detected: {file.name}")
 
                     file_path.parent.mkdir(parents=True, exist_ok=True)
