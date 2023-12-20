@@ -193,7 +193,9 @@ class Wad:
                     file_path = (path / file.name).resolve()
 
                     if not file_path.is_relative_to(path):
-                        raise RuntimeError(f"Escaping path detected: {file.name}")
+                        raise RuntimeError(
+                            f"Escaping path detected: {file.name} {file_path=} {path=}"
+                        )
 
                     file_path.parent.mkdir(parents=True, exist_ok=True)
 
