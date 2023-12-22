@@ -59,8 +59,8 @@ def extract(input_wad: Path, output_dir: Path):
 @click.option(
     "--compression-level",
     type=int,
-    default=9,
-    help="zlib compression level of the data blob",
+    default=2,
+    help="isal compression level of the data blob",
 )
 def pack(
     target_wad: Path,
@@ -86,8 +86,8 @@ def pack(
         click.echo("workers must be greater than 0")
         exit(1)
 
-    if not 1 <= compression_level <= 9:
-        click.echo("compression level must be 1-9")
+    if not 0 <= compression_level <= 3:
+        click.echo("compression level must be 0-3")
         exit(1)
 
     Wad.from_full_add(

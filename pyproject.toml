@@ -11,6 +11,7 @@ repository = "https://github.com/StarrFox/wizwad"
 python = "^3.10"
 click = "^8.1.7"
 more-itertools = "^10.1.0"
+isal = "^1.5.3"
 
 [tool.poetry.scripts]
 wizwad = "wizwad.__main__:main"
