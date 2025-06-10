@@ -32,4 +32,4 @@ print(some_file)
 
 ## support
 
-discord: <https://discord.gg/yuCRZ7kPjM>
+discord: <https://discord.gg/wcftyYm6qe>
