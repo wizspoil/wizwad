@@ -2,7 +2,7 @@ import concurrent.futures
 import logging
 import os
 import struct
-import zlib
+#import zlib
 from dataclasses import dataclass
 from io import BytesIO
 from mmap import ACCESS_READ, mmap
@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Iterator, List, Optional, Union
 
 import more_itertools
+from zlib_ng import zlib_ng as zlib
 
 _NO_COMPRESS = frozenset(
     (
