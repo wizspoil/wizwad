@@ -2,12 +2,14 @@ import concurrent.futures
 import logging
 import os
 import struct
-import zlib
+#import zlib
 from dataclasses import dataclass
 from io import BytesIO
 from mmap import ACCESS_READ, mmap
 from pathlib import Path
 from typing import Iterator, List, Optional, Union
+
+from isal import isal_zlib as zlib
 
 import more_itertools
 
@@ -229,7 +231,7 @@ class Wad:
         overwrite: bool = False,
         wad_version: int = 1,
         workers: int = 10,
-        compression_level: int = 9,
+        compression_level: int = 2,
     ):
         if isinstance(source_path, str):
             source_path = Path(source_path)
@@ -257,7 +259,7 @@ class Wad:
         output_path: Path,
         wad_version: int = 1,
         workers: int = 100,
-        compression_level: int = 9,
+        compression_level: int = 2,
     ):
         to_write: list[Path] = []
         source_path_string = str(source_path)
@@ -341,7 +343,7 @@ def _calculate_chunk(
     files: Iterator[Path],
     start: int,
     source: Path,
-    compression_level: int = 9,
+    compression_level: int = 2,
 ) -> tuple[int, BytesIO, list[WadFileInfo]]:
     """
     returns end offset, data block, and journal entries
@@ -376,3 +378,11 @@ def _calculate_chunk(
         data_buffer.write(data)
 
     return current_offset, data_buffer, journal_entries
+
+
+if __name__ == "__main__":
+    _calculate_chunk(
+        iter([Path("wad.py")]),
+        0,
+        Path(__file__).absolute().parent
+    )
