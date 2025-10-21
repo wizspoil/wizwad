@@ -1,29 +1,41 @@
-[tool.poetry]
+[project]
 name = "wizwad"
 version = "0.4.4"
 description = "A fast extractor and packer for wizard101/pirate101 wad files"
-authors = ["StarrFox <starrfox6312@gmail.com>"]
-license = "MIT"
+authors = [{ name = "StarrFox", email = "starrfox6312@gmail.com" }]
+requires-python = ">=3.10"
 readme = "README.md"
-repository = "https://github.com/StarrFox/wizwad"
+license = "MIT"
+dependencies = [
+    "click>=8.1.7,<9",
+    "more-itertools>=10.1.0,<11",
+]
 
-[tool.poetry.dependencies]
-python = "^3.10"
-click = "^8.1.7"
-more-itertools = "^10.1.0"
+[project.urls]
+Repository = "https://github.com/wizspoil/wizwad"
 
-[tool.poetry.scripts]
+[project.scripts]
 wizwad = "wizwad.__main__:main"
 
-[tool.poetry.group.tests.dependencies]
-pytest = "^7.4.3"
-pytest-cov = "^4.1.0"
-mypy = "^1.7.1"
+[dependency-groups]
+tests = [
+    "mypy>=1.18.2",
+    "pytest>=8.4.2",
+    "pytest-cov>=7.0.0",
+]
+
+[tool.uv]
+default-groups = "all"
 
 [tool.pyright]
 typeCheckingMode = "strict"
 reportUnusedFunction = false
 
+[tool.uv.build-backend]
+module-root = ""
+
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires = ["uv_build>=0.7.22"]
+build-backend = "uv_build"
+
+

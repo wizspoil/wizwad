@@ -209,6 +209,7 @@ class Wad:
                     else:
                         data = mm[file.offset : file.offset + file.size]
 
+                    # TODO: why don't we just write a file full of zeros instead of an empty file
                     # unpatched file
                     if data[:4] == b"\x00\x00\x00\x00":
                         logger.warning(f'Touching unpatched file "{file.name}"')
