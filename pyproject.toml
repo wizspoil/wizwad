@@ -18,6 +18,9 @@ Repository = "https://github.com/wizspoil/wizwad"
 wizwad = "wizwad.__main__:main"
 
 [dependency-groups]
+benchmarks = [
+    "scalene>=1.5.55",
+]
 tests = [
     "mypy>=1.18.2",
     "pytest>=8.4.2",
