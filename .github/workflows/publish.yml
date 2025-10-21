@@ -1,0 +1,31 @@
+name: Publish
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - '*'
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    environment:
+        name: pypi
+    permissions:
+        id-token: write
+        contents: read
+
+    steps:
+    - uses: actions/checkout@v5
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.13"
+    - name: Install uv
+      uses: astral-sh/setup-uv@v6
+    - name: Install dependencies
+      run: uv sync --all-groups
+    - name: Build
+      run: uv build
+    - name: Publish
+      run: uv publish
