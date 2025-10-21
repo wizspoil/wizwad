@@ -2,36 +2,30 @@ name: Tests
 
 on:
   push:
-    paths:
-      - "wizwad/**"
-      - ".github/workflows/tests.yml"
   pull_request:
-    paths:
-      - "wizwad/**"
-      - ".github/workflows/tests.yml"
 
 jobs:
   test:
     strategy:
       fail-fast: false
       matrix:
-        python-version: [ "3.10", "3.11", "3.12" ]
+        python-version: [ "3.10", "3.11", "3.12", "3.13", "3.14" ]
         runner: [ ubuntu-latest, windows-latest, macos-latest ]
 
     runs-on: ${{matrix.runner}}
     name: ${{ matrix.runner }} ${{ matrix.python-version }}
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
-    - name: Set up Poetry
-      uses: abatilo/actions-poetry@v2
+    - name: Install uv
+      uses: astral-sh/setup-uv@v6
     - name: Install dependencies
-      run: poetry install
+      run: uv sync --all-groups
     - name: Run tests
-      run: poetry run pytest
+      run: uv run pytest
     - name: Run mypy
-      run: poetry run mypy .
+      run: uv run mypy .
